@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Helpers\ErrorCodes;
 use App\Models\Category;
+use App\Models\Product;
 use App\Services\CategoryService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 
 /**
  * Class ApiController
@@ -68,23 +70,36 @@ class CategoryController extends Controller
         }
     }
 
+
     /**
      * Get all categories
      *
      * @return \Illuminate\Http\JsonResponse
      */
+
     public function getAll(Request $request)
     {
         try {
-            $pagParams = $this->getPaginationParams($request);
+            switch($request){
+                case "GetParrents":
 
-            $categories = Category::where('id', '!=', null);
+                        $parents = Category::where('parent_id', 0)->get();
 
-            $paginationData = $this->getPaginationData($categories, $pagParams['page'], $pagParams['limit']);
+                        return $this->returnSuccess($parents);
 
-            $categories = $categories->offset($pagParams['offset'])->limit($pagParams['limit'])->get();
+                break;
+                default: 
+                $pagParams = $this->getPaginationParams($request);
 
-            return $this->returnSuccess($categories, $paginationData);
+                $categories = Category::where('id', '!=', null);
+
+                $paginationData = $this->getPaginationData($categories, $pagParams['page'], $pagParams['limit']);
+
+                $categories = $categories->offset($pagParams['offset'])->limit($pagParams['limit'])->get();
+
+                return $this->returnSuccess($categories, $paginationData);
+            }
+
         } catch (\Exception $e) {
             return $this->returnError($e->getMessage(), ErrorCodes::FRAMEWORK_ERROR);
         }
@@ -96,16 +111,26 @@ class CategoryController extends Controller
      * @param $id
      * @return \Illuminate\Http\JsonResponse
      */
-    public function get($id)
+    public function get(Request $request ,$id)
     {
         try {
-            $category = Category::where('id', $id)->first();
+        	
+                $pagParams = $this->getPaginationParams($request);
+
+                $category = Category::where('parent_id', $id);
+
+                $paginationData = $this->getPaginationData($category, $pagParams['page'], $pagParams['limit']);
+
+                $categories = $category->offset($pagParams['offset'])->limit($pagParams['limit'])->get();
+            
+                return $this->returnSuccess($categories, $paginationData);
 
             if (!$category) {
                 return $this->returnError('errors.category.not_found', ErrorCodes::NOT_FOUND_ERROR);
             }
 
             return $this->returnSuccess($category);
+
         } catch (\Exception $e) {
             return $this->returnError($e->getMessage(), ErrorCodes::FRAMEWORK_ERROR);
         }
@@ -120,6 +145,7 @@ class CategoryController extends Controller
     public function update($id, Request $request)
     {
         try {
+            
             $category = Category::where('id', $id)->first();
 
             if (!$category) {
@@ -130,21 +156,29 @@ class CategoryController extends Controller
             $validator = $this->categoryService->validateUpdateRequest($request);
 
             if (!$validator->passes()) {
+
                 return $this->returnError($validator->messages(), ErrorCodes::REQUEST_ERROR);
+
             }
 
             if ($request->has('parent_id')) {
+
                 $parentCategory = Category::where('id', $request->get('parent_id'))
                     ->where('parent_id', Category::MAIN_CATEGORY)
                     ->first();
 
                 if (!$parentCategory) {
+
                     return $this->returnError('errors.parent_id.invalid', ErrorCodes::REQUEST_ERROR);
+
                 }
 
                 $category->parent_id = $parentCategory->id;
-            } else {
+
+            }else{
+
                 $category->parent_id = Category::MAIN_CATEGORY;
+
             }
 
             $category->name = $request->get('name');
@@ -152,8 +186,11 @@ class CategoryController extends Controller
             $category->save();
 
             return $this->returnSuccess($category);
+
         } catch (\Exception $e) {
+
             return $this->returnError($e->getMessage(), ErrorCodes::FRAMEWORK_ERROR);
+
         }
     }
 
@@ -166,14 +203,72 @@ class CategoryController extends Controller
     public function delete($id)
     {
         try {
-            $category = Category::where('id', $id)->first();
 
-            if (!$category) {
-                return $this->returnError('errors.category.not_found', ErrorCodes::NOT_FOUND_ERROR);
+        $check_if_main = Category::findOrFail($id);
+        if($check_if_main->parent_id !== 0)
+        {
+            Category::find($id)->delete();
+            return $this->returnSuccess();
+        }else{
+            $check_if_has_sub = Category::select('*')
+                                ->where("parent_id", "=", $id)
+                                ->get();
+            if(count($check_if_has_sub) > 0)
+            {
+                $main_category = $check_if_main->id;
+                return $this->returnError("Has Children", ErrorCodes::HAS_CHIELDS_CATEGORIES);
+            }else{
+                Category::find($id)->delete();
+                return $this->returnSuccess();
             }
+        }
 
-            $category->delete();
 
+        } catch (\Exception $e) {
+            return $this->returnError($e->getMessage(), ErrorCodes::FRAMEWORK_ERROR);
+        }
+    }
+
+    public function deleteAllSubsAndMain($id)
+    {
+        try {
+            $allsubs = Category::where('parent_id', $id)->get();
+            if($allsubs){
+                foreach($allsubs as $sub){
+                    $idDel = $sub->id;
+                    $products = Product::where('category_id', $idDel);
+
+                    $productsAll = $products->get();
+
+                    foreach ($productsAll  as $img) {
+
+                        $path = storage_path('image')."/".$img->photo;
+                        File::delete($path);
+
+                    }
+
+                    $products ->delete();
+
+                    Category::find($idDel)->delete();
+                }
+            }
+                $products = Product::where('category_id', $id);
+                $productsAll = $products->get();
+                    foreach ($productsAll as $img) {
+
+                        $path = storage_path('image')."/".$img->photo;
+                        File::delete($path);
+                        return $path;
+                        break;
+                    }
+                    
+
+                $products->delete();
+
+                Category::where('parent_id', $id)->delete();
+
+                Category::find($id)->delete();
+            
             return $this->returnSuccess();
         } catch (\Exception $e) {
             return $this->returnError($e->getMessage(), ErrorCodes::FRAMEWORK_ERROR);

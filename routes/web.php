@@ -28,6 +28,10 @@ $router->group(['middleware' => 'cors'], function () use ($router) {
     $router->post('/change-password', ['uses' => 'UserController@changePassword']);
 });
 
+
+    $router->get('storage/{file}', ['uses' => 'ReturnImageController@return_image']);
+
+
 /** Routes with auth */
 $router->group(['middleware' => ['cors', 'auth']], function () use ($router) {
     /** User routes */
@@ -45,6 +49,7 @@ $router->group(['middleware' => ['cors', 'auth']], function () use ($router) {
         $router->get('/{id}', ['uses' => 'CategoryController@get']);
         $router->patch('/{id}', ['uses' => 'CategoryController@update']);
         $router->delete('/{id}', ['uses' => 'CategoryController@delete']);
+        $router->delete('/allsubsandmain/{id}', ['uses' => 'CategoryController@deleteAllSubsAndMain']);
     });
     $router->get('/products', ['uses' => 'ProductsController@getAll']);
     $router->group(['prefix' => 'product'], function () use ($router) {
@@ -52,5 +57,6 @@ $router->group(['middleware' => ['cors', 'auth']], function () use ($router) {
         $router->get('/{id}', ['uses' => 'ProductsController@get']);
         $router->patch('/{id}', ['uses' => 'ProductsController@update']);
         $router->delete('/{id}', ['uses' => 'ProductsController@delete']);
+        $router->delete('/delall/{id}', ['uses' => 'ProductsController@deleteAllProductsFromACategory']);
     });
 });

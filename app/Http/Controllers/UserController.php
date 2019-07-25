@@ -315,14 +315,12 @@ class UserController extends Controller
     public function changePassword(Request $request)
     {
     	 $this->validate($request, [
-			'email' => 'required|email',
 			'code' => 'required'
     	]);
         try {
            //email, code, valid, exists user, email
 
-            $user = User::where('email', $request->get('email'))
-                ->where('forgot_code', $request->get('code'))
+            $user = User::where('forgot_code', $request->get('code'))
                 ->first();
             if (!$user) {
                 return json_encode('Email or code is invalid');

@@ -20,4 +20,6 @@ class ErrorCodes
 
     /** @var int */
     const NOT_FOUND_ERROR = 4;
+
+    const HAS_CHIELDS_CATEGORIES = '5';
 }
