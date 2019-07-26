@@ -14,6 +14,7 @@ use App\Models\Category;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\File;
 
+
 class ProductsController extends Controller
 { 
 	private $productsService;
@@ -92,19 +93,22 @@ class ProductsController extends Controller
 
             }
 
-            $count = count(Product::where("Category_ID", '=', $request->get('category_id'))->get());
+            $count = count(Product::where("Category_ID", '=', $request->get('category_id'))->get()) ;
 
             $quantity = $request->get('quantity');
 
             $fullprice = $request->get('full_price');
 
             $category_id = $request->get('category_id');
+
             $updated = $this->productsService->update_sale_price($category_id , $count , false);
 
 			$salesPrice=$this->productsService->getSalePrice($count, $quantity, $fullprice);
 
             $path = storage_path('image')."/";
+            
             $img = $this->BaseService->processImage($path , $request->image);
+
             if(!$img){
                 return json_encode("Invalid image format");
             }
@@ -210,7 +214,7 @@ class ProductsController extends Controller
 
     		$category_id = $product ->category_id;
 
-    		$count_products_in_category = count(Product::where("Category_ID", '=', $category_id)->get());
+    		$count_products_in_category = count(Product::where("Category_ID", '=', $category_id)->get()) -1;
 
     		$updated = $this->productsService->update_sale_price($category_id, $count_products_in_category , $id);
 

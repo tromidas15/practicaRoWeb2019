@@ -48,7 +48,10 @@ class ProductService
         return Validator::make($request->all(), $rules, $messages);
     }
 
+
+
     public function getSalePrice($count, $quantity, $fullprice)
+    
     {
 
             if($quantity > 100 && $count <= 2){
@@ -74,7 +77,9 @@ class ProductService
             }
     }
 
-    public function update_last_category($category_id , $product_id)
+
+
+    protected function update_past_category($category_id , $product_id)
     {
         $allProductsOfThisCategory = Product::where("category_id", '=', $category_id)->get();
 
@@ -103,27 +108,10 @@ class ProductService
 
 
 
-
-    public function update_sale_price($id, $count , $product)
+    protected function update_future_category ($productsToUpdate, $count)
     {
+        $count++;
 
-
-        $productsToUpdate = Product::where("category_id", '=', $id)->get();
-
-
-        if($product){
-
-                $product_id = $product;
-                $get_product_details = Product::where("id" , $product)->first();
-
-                $last_category = $get_product_details->category_id;
-
-                $this->update_last_category($last_category, $product_id);
-
-
-            }
-        
-            $count++;
         foreach ($productsToUpdate as $product) {
                     
             $quantity = $product->quantity;
@@ -145,6 +133,31 @@ class ProductService
 
 
         }
+    }
+
+
+
+    public function update_sale_price($id, $count , $product)
+    {
+
+
+        $productsToUpdate = Product::where("category_id", '=', $id)->get();
+
+
+        if($product){
+
+                $product_id = $product;
+
+                $get_product_details = Product::where("id" , $product)->first();
+
+                $last_category = $get_product_details->category_id;
+
+                $this->update_past_category($last_category, $product_id);
+
+            }
+        
+        $this->update_future_category($productsToUpdate, $count);
+
 
     }
 }
