@@ -51,7 +51,7 @@ class ProductService
 
 
     public function getSalePrice($count, $quantity, $fullprice)
-    
+
     {
 
             if($quantity > 100 && $count <= 2){
@@ -79,11 +79,12 @@ class ProductService
 
 
 
-    protected function update_past_category($category_id , $product_id)
+    protected function update_past_category($category_id)
     {
-        $allProductsOfThisCategory = Product::where("category_id", '=', $category_id)->get();
+        $allProductsOfThisCategory = Product::where("category_id", $category_id)->get();
 
         $count = count($allProductsOfThisCategory)-1;
+
         foreach($allProductsOfThisCategory as $product){
 
             $quantity = $product->quantity;
@@ -110,6 +111,7 @@ class ProductService
 
     protected function update_future_category ($productsToUpdate, $count)
     {
+        
         $count++;
 
         foreach ($productsToUpdate as $product) {
@@ -141,18 +143,16 @@ class ProductService
     {
 
 
-        $productsToUpdate = Product::where("category_id", '=', $id)->get();
+        $productsToUpdate = Product::where("category_id",  $id)->get();
 
 
-        if($product){
-
-                $product_id = $product;
+        if($product && $product !="del"){
 
                 $get_product_details = Product::where("id" , $product)->first();
 
                 $last_category = $get_product_details->category_id;
 
-                $this->update_past_category($last_category, $product_id);
+                $this->update_past_category($last_category);
 
             }
         
@@ -160,4 +160,5 @@ class ProductService
 
 
     }
+
 }

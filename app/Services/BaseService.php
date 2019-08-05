@@ -31,11 +31,11 @@ class BaseService
 	}
 
 
-    public function processImage($path, $image)
+    public function processImage($path, $image , $profile = false)
     {
     	$name = $this->get_image_name($image);
 
-        if($name){
+        if($name && !$profile){
             $pictureData = [];
 
        		$originalMaxImage = Image::make($image);

@@ -38,11 +38,12 @@ $router->group(['middleware' => ['cors', 'auth']], function () use ($router) {
     $router->post('/logout', ['uses' => 'UserController@logout']);
     $router->group(['prefix' => 'user'], function () use ($router) {
         $router->get('', ['uses' => 'UserController@getUser']);
+        $router->get('/getAll', ['uses' => 'UserController@getAllUsers']);
         $router->post('/create', ['uses'=> 'UserController@createUser']);
         $router->patch('/update/{id}', ['uses'=>'UserController@updateUser']);
         $router->delete('/delete/{id}', ['uses'=>'UserController@deleteUser']);
     });
-
+    $router->get('/subcategories', ['uses' => 'CategoryController@subCategories']);
     $router->get('/categories', ['uses' => 'CategoryController@getAll']);
     $router->group(['prefix' => 'category'], function () use ($router) {
         $router->post('/', ['uses' => 'CategoryController@create']);

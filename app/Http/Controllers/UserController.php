@@ -14,7 +14,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Validator;
-
+use App\Services\BaseService;
+use Illuminate\Support\Facades\File;
 /**
  * Class UserController
  *
@@ -24,7 +25,7 @@ class UserController extends Controller
 {
     /** @var UserService */
     private $userService;
-
+    private $BaseService;
     /**
      * UserController constructor.
      */
@@ -33,6 +34,8 @@ class UserController extends Controller
         parent::__construct();
 
         $this->userService = new UserService();
+
+        $this->BaseService = new BaseService();
     }
 
     /**
@@ -141,6 +144,38 @@ class UserController extends Controller
         }
     }
 
+
+    public function getAllUsers(Request $request)
+    {
+    	try {
+
+    		$user = Auth::user();
+
+    		if($user->type != 1){
+
+	    		return $this->returnError("AccesDenied", ErrorCodes::FRAMEWORK_ERROR);;
+
+	    	}
+
+	    	$pagParams = $this->getPaginationParams($request);
+
+	    	$usersList = User::where('id', '!=', null);
+
+        	$paginationData = $this->getPaginationData($usersList, $pagParams['page'], $pagParams['limit']);
+
+        	$usersList  = $usersList ->offset($pagParams['offset'])->limit($pagParams['limit'])->get();
+
+	    	return($usersList ? $this->returnSuccess($usersList, $paginationData) : $text = "There are no products");
+
+
+    	} catch(\Exception $e){
+
+    		return $this->returnError($e->getMessage(), ErrorCodes::FRAMEWORK_ERROR);
+
+    	}
+    }
+
+
     public function createUser(Request $request)
     {
     	try{
@@ -159,11 +194,22 @@ class UserController extends Controller
                         return $this->returnError($validator->messages(), ErrorCodes::REQUEST_ERROR);
                     }
 
+
+			        $path = storage_path('image')."/";
+			            
+			        if($request->image){
+			        	$img = $this->BaseService->processImage($path , $request->image);
+			        }else{
+			        	$img = null;
+			        }
+
+
     				User::create([
     					'email' => $request->get('email'),
     					'password' => Hash::make($request->get('password')),
     					'name' => $request->get("name"),
-    					'type' => $request->get('admin') ? User::TYPE_ADMIN : User::TYPE_NORMAL
+    					'type' => $request->get('admin') ? User::TYPE_ADMIN : User::TYPE_NORMAL,
+    					'picture' => $img,
     				]);
 
     				return $this->returnSuccess();
@@ -179,11 +225,12 @@ class UserController extends Controller
     {
     	try{
     		$user = Auth::user();
+
     		$this->validate($request, [
 					'email' => 'required|email|unique:users,email,'.$id.'id',
-					'password' => 'required|alpha_dash|min:6',
 					'name'=>'required|alpha'
     			]);
+
     		switch($user->type){
     			case 0:
     				if($user->id == $id)
@@ -191,7 +238,9 @@ class UserController extends Controller
     					$user = User::where('id', $id)->first();
 
     					$user->email = $request ->get('email');
-    					$user->password = Hash::make($request->get('password'));
+		    				if($request->get('password')){
+		    					$user->password = Hash::make($request->get('password'));
+		    				}
     					$user->name = $request->get("name");
 
     					$user->save();
@@ -206,9 +255,28 @@ class UserController extends Controller
     				$user = User::findOrFail($id);
 
     				$user->email = $request ->get('email');
-    				$user->password = Hash::make($request->get('password'));
+
+    				if($request->get('password')){
+    					$user->password = Hash::make($request->get('password'));
+    				}
+    				
     				$user->name = $request->get("name");
-    				$user->type = $request->get('admin')? User::TYPE_ADMIN : User::TYPE_NORMAL;
+
+    				if($request->image){
+
+    					$lastImg = $user->picture;
+
+    					$path = storage_path('image')."/".$lastImg;
+            			File::delete($path);
+
+
+    					$path = storage_path('image')."/";
+
+    					$user->picture = $this->BaseService->processImage($path , $request->get('image'));
+
+     				}
+
+    				$user->type = $request->get('type') == 1 ? User::TYPE_ADMIN : User::TYPE_NORMAL;
 
     				$user->save();
     					
@@ -230,6 +298,11 @@ class UserController extends Controller
 					return json_encode("User do not exist");
 
 	    		}else{
+
+	    			 $lastImg = $user->picture;
+
+    				$path = storage_path('image')."/".$lastImg;
+            		File::delete($path);
 
 	    			$user->delete();
 	    			return $this->returnSuccess();

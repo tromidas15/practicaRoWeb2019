@@ -81,7 +81,7 @@ class ProductsController extends Controller
 
 	    	if($user->type != 1){
 
-	    		return (json_encode("You do not have permission"));
+	    		return ($this->returnError("AccessDenied", ErrorCodes::PERMISSIONS_REQUIRED));
 
 	    	}
 
@@ -103,7 +103,7 @@ class ProductsController extends Controller
 
             $updated = $this->productsService->update_sale_price($category_id , $count , false);
 
-			$salesPrice=$this->productsService->getSalePrice($count, $quantity, $fullprice);
+			$salesPrice=$this->productsService->getSalePrice($count+1, $quantity, $fullprice);
 
             $path = storage_path('image')."/";
             
@@ -122,6 +122,8 @@ class ProductsController extends Controller
 							            'category_id' => $request->get('category_id'),
 							            'photo'=> $img,
             							]);
+
+            
 
             return $this->returnSuccess($category);
 
@@ -214,9 +216,9 @@ class ProductsController extends Controller
 
     		$category_id = $product ->category_id;
 
-    		$count_products_in_category = count(Product::where("Category_ID", '=', $category_id)->get()) -1;
+    		$count_products_in_category = count(Product::where("Category_ID", '=', $category_id)->get()) -2;
 
-    		$updated = $this->productsService->update_sale_price($category_id, $count_products_in_category , $id);
+    		$updated = $this->productsService->update_sale_price($category_id, $count_products_in_category , false);
 
             $img = $product->photo;
 

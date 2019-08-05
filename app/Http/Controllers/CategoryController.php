@@ -70,6 +70,18 @@ class CategoryController extends Controller
         }
     }
 
+    public function subCategories()
+    {
+        try {
+            $categories = Category::with('subCategories')
+                ->where('parent_id', Category::MAIN_CATEGORY)
+                ->get();
+
+            return $this->returnSuccess($categories);
+        } catch (\Exception $e) {
+            return $this->returnError($e->getMessage(), ErrorCodes::FRAMEWORK_ERROR);
+        }
+    }
 
     /**
      * Get all categories
